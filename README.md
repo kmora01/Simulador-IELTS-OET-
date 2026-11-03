@@ -9,6 +9,7 @@ Simulador web (estático, sin servidor) para preparar **IELTS** (Academic y Gene
 - **Speaking** con examinador/paciente por voz, tiempos de preparación, grabación, transcripción y métricas.
 - **Puntuación estimada**: bandas IELTS (0–9) y escala OET (0–500, grados A–E).
 - **Progreso** guardado en el navegador (localStorage), panel de áreas débiles, historial y exportación/importación.
+- **Estudio diario**: 218 expresiones y vocabulario cotidiano en 16 temas (saludos, restaurante, viajes, trabajo, phrasal verbs, modismos, falsos amigos…) con traducción, ejemplos, audio, buscador, favoritas, expresión del día y práctica (tarjetas con repetición espaciada, quiz, completar la frase y comprensión auditiva). Contenido en `data/daily.js`.
 - **Speaking y Vocabulario**: preguntas rápidas, shadowing, frases útiles y 6 mazos con repetición espaciada, quiz, dictado y pronunciación.
 
 Todo el contenido de práctica es original. No está afiliado a IELTS ni a OET.
