@@ -62,7 +62,7 @@ const App = (() => {
       <section class="hero">
         <h1>Prepárate para IELTS y OET como si fuera el día del examen</h1>
         <p>Secciones cronometradas con el mismo formato, tipos de pregunta y tiempos que el examen real, audio con voces en inglés, puntuación estimada (bandas IELTS y escala OET 0–500) y un panel que te dice qué entrenar.</p>
-        <div class="btn-row" style="margin-top:14px"><a class="btn" href="#/ielts">🎓 Practicar IELTS</a><a class="btn" href="#/oet">🩺 Practicar OET</a><a class="btn secondary" href="#/practica">🎙️ Speaking y Vocabulario</a></div>
+        <div class="btn-row" style="margin-top:14px"><a class="btn" href="#/ielts">🎓 Practicar IELTS</a><a class="btn" href="#/oet">🩺 Practicar OET</a><a class="btn secondary" href="#/estudio">📘 Vocabulario diario</a><a class="btn secondary" href="#/frases">🗨️ Frases y dichos</a><a class="btn secondary" href="#/practica">🎙️ Speaking y Vocabulario</a></div>
       </section>
       <div class="grid grid-4" style="margin-top:16px">
         <div class="card stat"><span class="lbl">Banda IELTS estimada</span><span class="val">${I.overall != null ? I.overall.toFixed(1) : '—'}</span><span class="small muted">${I.partial.length}/4 destrezas</span></div>
@@ -192,17 +192,19 @@ const App = (() => {
   }
 
   /* ---------- Router ---------- */
-  function cleanupAll() { Runner.cleanup(); Writing.cleanup(); Speaking.cleanup(); document.body.classList.remove('in-exam'); }
+  function cleanupAll() { Study.cleanup(); Sayings.cleanup(); Runner.cleanup(); Writing.cleanup(); Speaking.cleanup(); document.body.classList.remove('in-exam'); }
   function route() {
     const h = location.hash.replace(/^#\/?/, '');
     const [page, a, b] = h.split('/');
     cleanupAll();
-    $$('#nav a').forEach(x => x.classList.toggle('active', x.dataset.route === (page || 'home') || (page === 'guia' && x.dataset.route === a)));
+    $$('#nav a').forEach(x => x.classList.toggle('active', x.dataset.route === (page || 'home') || (page === 'frases' && x.dataset.route === 'estudio') || (page === 'guia' && x.dataset.route === a)));
     window.scrollTo(0, 0);
     if (!page) return home();
     if (page === 'ielts') return ielts();
     if (page === 'oet') return oet();
     if (page === 'practica') return practica();
+    if (page === 'estudio') return Study.render(root(), a);
+    if (page === 'frases') return Sayings.render(root(), a);
     if (page === 'progreso') return Dashboard.render(root());
     if (page === 'guia') return guide(a === 'oet' ? 'oet' : 'ielts');
     if (page === 'test') { const t = DATA.tests[a]; if (!t) return home(); return Runner.start(t); }

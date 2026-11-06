@@ -12,6 +12,7 @@ const Store = (() => {
       vocab: {},          // id -> { box, seen, right, wrong, last }
       active: null,       // intento en curso (reading/writing) para poder continuar
       drafts: {},
+      favs: {},           // favoritas de la sección Estudio
       activity: {}        // 'YYYY-MM-DD' -> minutos aproximados / sesiones
     };
   }
