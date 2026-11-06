@@ -1,7 +1,8 @@
 /* Estudio: vocabulario y expresiones cotidianas.
    Temas con lista, tarjetas (repetición espaciada), quiz, completar la frase y comprensión auditiva.
    El progreso usa Store.vocab con el prefijo "d:" y los favoritos se guardan en Store.state.favs. */
-const Study = (() => {
+function makeStudy(cfg) {
+  const R = cfg.route;
   const { esc, $, $$ } = UI;
   const DAY = 86400000, INTERVAL = [0, 1, 2, 4, 8, 16].map(d => d * DAY), LEARNED = 3;
   const MODES = [['learn', '📖 Aprender'], ['cards', '🃏 Tarjetas'], ['quiz', '✅ Quiz'], ['gap', '✏️ Completa'], ['listen', '🎧 Escucha']];
@@ -9,9 +10,9 @@ const Study = (() => {
   let round = null; // cancela temporizadores de la ronda anterior
 
   /* ---------- Datos y progreso ---------- */
-  const topics = () => (DATA.daily && DATA.daily.topics) || [];
+  const topics = () => (DATA[cfg.data] && DATA[cfg.data].topics) || [];
   const all = () => topics().flatMap(t => t.items.map(i => Object.assign(i, { topic: t })));
-  const id = i => 'd:' + i.topic.id + ':' + i.en;
+  const id = i => cfg.prefix + ':' + i.topic.id + ':' + i.en;
   const st = i => Store.vocab(id(i));
   const isDue = i => { const s = st(i); return !s.seen || Date.now() - s.last >= INTERVAL[Math.min(s.box, 5)]; };
   const learned = items => items.filter(i => st(i).box >= LEARNED).length;
@@ -75,22 +76,23 @@ const Study = (() => {
   function home(root) {
     const s = stats(), d = daily();
     root.innerHTML = `
-      <h1 style="margin-bottom:4px">📘 Estudio diario</h1>
-      <p class="muted" style="margin-top:0">Vocabulario y expresiones cotidianas en inglés, con traducción, ejemplos y audio. Repasa unos minutos cada día.</p>
-      ${d ? `<div class="card day-card"><div class="small" style="opacity:.85;font-weight:700;letter-spacing:.4px">⭐ EXPRESIÓN DEL DÍA</div>
+      <div class="study-switch">${STUDY_SECTIONS.map(([r, l]) => `<a href="${r}" class="${r === R ? 'active' : ''}">${l}</a>`).join('')}</div>
+      <h1 style="margin-bottom:4px">${cfg.title}</h1>
+      <p class="muted" style="margin-top:0">${cfg.intro}</p>
+      ${d ? `<div class="card day-card"><div class="small" style="opacity:.85;font-weight:700;letter-spacing:.4px">⭐ ${cfg.dayLabel}</div>
         <div class="day-en">${esc(d.en)}</div><div class="day-es">${esc(d.es)}</div><div class="day-ex"><i>“${esc(d.ex)}”</i></div>
         ${d.note ? `<div class="small" style="opacity:.9;margin-top:6px">💡 ${esc(d.note)}</div>` : ''}
-        <div class="btn-row" style="margin-top:12px"><button class="btn sm" id="dSay">🔊 Escuchar</button><button class="btn sm" id="dFav">${isFav(d) ? '★ En favoritas' : '☆ Guardar'}</button><a class="btn sm" href="#/estudio/${d.topic.id}">${d.topic.ico} Ver tema</a></div></div>` : ''}
+        <div class="btn-row" style="margin-top:12px"><button class="btn sm" id="dSay">🔊 Escuchar</button><button class="btn sm" id="dFav">${isFav(d) ? '★ En favoritas' : '☆ Guardar'}</button><a class="btn sm" href="${R}/${d.topic.id}">${d.topic.ico} Ver tema</a></div></div>` : ''}
       <div class="study-stats">
         <div class="card stat"><span class="lbl">Aprendidas</span><span class="val">${s.learned}<small>/${s.total}</small></span></div>
-        <a class="card stat" href="#/estudio/repaso"><span class="lbl">Para repasar</span><span class="val">${s.due}</span><span class="small muted">Repaso ›</span></a>
-        <a class="card stat" href="#/estudio/favoritas"><span class="lbl">Favoritas</span><span class="val">${s.favs}</span><span class="small muted">Practicar ›</span></a>
+        <a class="card stat" href="${R}/repaso"><span class="lbl">Para repasar</span><span class="val">${s.due}</span><span class="small muted">Repaso ›</span></a>
+        <a class="card stat" href="${R}/favoritas"><span class="lbl">Favoritas</span><span class="val">${s.favs}</span><span class="small muted">Practicar ›</span></a>
       </div>
       <div class="search-box"><input type="search" id="q" placeholder="🔎 Buscar en inglés o español (p. ej. «cuenta», «catch up»)" autocomplete="off"></div>
       <div id="results"></div>
       <div id="topicsWrap">
         <div class="section-title"><h2>Temas</h2><span class="small muted">${topics().length} temas · ${s.total} expresiones</span></div>
-        <div class="topic-grid">${topics().map(t => `<a class="card topic-card" href="#/estudio/${t.id}">
+        <div class="topic-grid">${topics().map(t => `<a class="card topic-card" href="${R}/${t.id}">
           <div class="t-ico">${t.ico}</div><b>${esc(t.name)}</b><span class="small muted t-desc">${esc(t.desc)}</span>${progressBar(t.items)}</a>`).join('')}</div>
       </div>
       <div class="card" style="margin-top:16px"><h3 style="margin-top:0">¿Cómo estudiar aquí?</h3>
@@ -106,10 +108,10 @@ const Study = (() => {
     }
     const q = $('#q');
     q.oninput = () => search(q.value);
-    try { const last = sessionStorage.getItem('studyQ'); if (last) { q.value = last; search(last); } } catch (e) { }
+    try { const last = sessionStorage.getItem(cfg.prefix + 'Q'); if (last) { q.value = last; search(last); } } catch (e) { }
   }
   function search(raw) {
-    try { sessionStorage.setItem('studyQ', raw); } catch (e) { }
+    try { sessionStorage.setItem(cfg.prefix + 'Q', raw); } catch (e) { }
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’']/g, "'");
     const q = norm(raw.trim()), box = $('#results'), wrap = $('#topicsWrap');
     if (q.length < 2) { box.innerHTML = ''; wrap.style.display = ''; return; }
@@ -126,7 +128,7 @@ const Study = (() => {
     else if (key === 'favoritas') pool = { key, ico: '★', title: 'Mis favoritas', desc: 'Las expresiones que has guardado.', items: all().filter(isFav) };
     else {
       const t = topics().find(x => x.id === key);
-      if (!t) { location.hash = '#/estudio'; return; }
+      if (!t) { location.hash = R; return; }
       all(); // asegura i.topic
       pool = { key, ico: t.ico, title: t.name, desc: t.desc, items: t.items };
     }
@@ -134,12 +136,12 @@ const Study = (() => {
     try { mode = sessionStorage.getItem('studyMode') || 'learn'; } catch (e) { }
     if (key === 'repaso' && mode === 'learn') mode = 'cards';
     root.innerHTML = `
-      <a href="#/estudio" class="back-link">‹ Estudio</a>
+      <a href="${R}" class="back-link">‹ ${cfg.back}</a>
       <div class="section-title" style="margin-top:6px"><div><h1 style="margin:0">${pool.ico} ${esc(pool.title)}</h1><p class="muted" style="margin:0">${esc(pool.desc)}</p></div></div>
       ${pool.items.length ? `<div class="topic-progress">${progressBar(pool.items)}</div>
       <div class="mode-tabs" id="modeTabs">${MODES.map(([m, l]) => `<button data-m="${m}">${l}</button>`).join('')}</div>
       <div id="studyBox"></div>`
-      : `<div class="card center" style="padding:28px"><p>${key === 'repaso' ? '🎉 No tienes nada pendiente de repaso hoy. Estudia un tema nuevo y vuelve mañana.' : 'Aún no tienes favoritas. Toca ☆ en cualquier expresión para guardarla aquí.'}</p><a class="btn" href="#/estudio">Ver temas</a></div>`}`;
+      : `<div class="card center" style="padding:28px"><p>${key === 'repaso' ? '🎉 No tienes nada pendiente de repaso hoy. Estudia un tema nuevo y vuelve mañana.' : 'Aún no tienes favoritas. Toca ☆ en cualquier expresión para guardarla aquí.'}</p><a class="btn" href="${R}">Ver temas</a></div>`}`;
     if (!pool.items.length) return;
     const show = m => {
       stopRound();
@@ -165,7 +167,7 @@ const Study = (() => {
       <div style="font-size:2.4rem">${pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
       <h3 style="margin:6px 0">Ronda terminada</h3>
       <p class="stat" style="margin:0"><span class="val">${right}/${total}</span><span class="lbl">aciertos</span></p>
-      <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn" id="again">Otra ronda</button><a class="btn ghost" href="#/estudio">Volver a temas</a></div></div>
+      <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn" id="again">Otra ronda</button><a class="btn ghost" href="${R}">Volver a temas</a></div></div>
       ${missed.length ? `<h3>Para repasar</h3><div class="ex-list">${missed.map(i => itemRow(i, false)).join('')}</div>` : ''}`;
     bindRows(box, missed);
     $('#again').onclick = again;
@@ -273,4 +275,16 @@ const Study = (() => {
 
   function render(root, key) { stopRound(); if (key) open(root, key); else home(root); }
   return { render, stats, cleanup: stopRound };
-})();
+}
+
+const STUDY_SECTIONS = [['#/estudio', '📘 Vocabulario'], ['#/frases', '🗨️ Frases y dichos']];
+const Study = makeStudy({
+  data: 'daily', prefix: 'd', route: '#/estudio', back: 'Vocabulario', dayLabel: 'EXPRESIÓN DEL DÍA',
+  title: '📘 Estudio diario',
+  intro: 'Vocabulario y expresiones cotidianas en inglés, con traducción, ejemplos y audio. Repasa unos minutos cada día.'
+});
+const Sayings = makeStudy({
+  data: 'sayings', prefix: 's', route: '#/frases', back: 'Frases y dichos', dayLabel: 'FRASE DEL DÍA',
+  title: '🗨️ Frases, expresiones y dichos',
+  intro: 'Frases hechas que se oyen a diario, expresiones coloquiales y refranes populares en inglés con su equivalente en español.'
+});
